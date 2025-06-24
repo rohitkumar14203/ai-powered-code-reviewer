@@ -10,7 +10,8 @@ const port = process.env.PORT;
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    // origin: "http://localhost:5173",
+    origin: "https://ai-powered-code-reviewer-xi.vercel.app",
     methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
