@@ -1,10 +1,36 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
+
+    <!-- SEO -->
+    <title>AI Code Reviewer — Instant Gemini-Powered Code Analysis</title>
+    <meta name="description" content="Get instant, AI-powered code reviews using Gemini 2.5 Flash. Supports 18+ languages with security, performance, and quality analysis modes." />
+    <meta name="author" content="Rohit Kumar" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="AI Code Reviewer — Powered by Gemini 2.5 Flash" />
+    <meta property="og:description" content="Instant AI code reviews. JavaScript, Python, Java, C++, Go, Rust, and 12+ more languages." />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#7c6af7" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- Prevent flash of wrong theme -->
+    <script>
+      (function() {
+        var t = localStorage.getItem('cr_theme');
+        if (t === 'light') document.documentElement.classList.remove('dark');
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

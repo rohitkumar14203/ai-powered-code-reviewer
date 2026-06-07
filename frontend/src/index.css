@@ -1,68 +1,95 @@
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import "tailwindcss";
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+/* ─── Dark mode via class toggle ───────────────────────────────────────────── */
+@custom-variant dark (&:is(.dark *));
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+/* ─── Base layer ───────────────────────────────────────────────────────────── */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* ─── Custom scrollbar ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+/* ─── Dark mode dropdown fix ──────────────────────────────────────────────── */
+.dark select option {
+  background: #1e1e2e;
+  color: #e4e4e7;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+/* ─── Custom animations ───────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scoreReveal {
+  from { stroke-dashoffset: 226; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ─── Markdown review content ──────────────────────────────────────────────── */
+.review-md h1, .review-md h2, .review-md h3 {
+  @apply font-bold text-gray-100 mt-5 mb-2;
+}
+.review-md h1 { @apply text-lg border-b border-white/[0.06] pb-2; }
+.review-md h2 { @apply text-base; }
+.review-md h3 { @apply text-sm; }
+.review-md p  { @apply text-sm text-gray-400 mb-3 leading-relaxed; }
+.review-md ul, .review-md ol { @apply pl-5 mb-3 text-sm text-gray-400; }
+.review-md li { @apply mb-1; }
+.review-md strong { @apply text-gray-200 font-semibold; }
+.review-md blockquote {
+  @apply border-l-2 border-violet-500 pl-3 text-gray-500 italic my-3;
+}
+.review-md code {
+  @apply font-mono text-xs bg-white/[0.06] px-1.5 py-0.5 rounded text-violet-300 border border-white/[0.04];
+}
+.review-md pre {
+  @apply bg-slate-800/60 border border-white/[0.06] rounded-lg p-3.5 overflow-x-auto my-3;
+}
+.review-md pre code {
+  @apply bg-transparent border-none p-0 text-gray-300 text-xs;
+}
+
+/* Skeleton shimmer */
+.skeleton-line {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
 }

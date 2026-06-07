@@ -2,28 +2,68 @@ import express from "express";
 import dotenv from "dotenv";
 dotenv.config();
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 
 import aiRoutes from "./routes/aiRoutes.js";
 
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
+
+// ─── CORS ─────────────────────────────────────────────────────────────────────
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:4173",
+  "https://ai-powered-code-reviewer-xi.vercel.app",
+];
 
 app.use(
   cors({
-    // origin: "http://localhost:5173",
-    origin: "https://ai-powered-code-reviewer-xi.vercel.app",
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: (origin, callback) => {
+      // allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST"],
   })
 );
 
-app.use(express.json());
+// ─── RATE LIMITING ────────────────────────────────────────────────────────────
+const limiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 10,             // 10 requests per window per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Too many requests. Please wait a minute before trying again.",
+  },
+});
 
-app.get("/", (req, res) => {
-  res.send("At your service my lord 🐱‍👤");
+app.use("/ai", limiter);
+
+// ─── BODY PARSER ──────────────────────────────────────────────────────────────
+app.use(express.json({ limit: "50kb" })); // Prevent huge payloads at network level
+
+// ─── ROUTES ───────────────────────────────────────────────────────────────────
+app.get("/", (_req, res) => {
+  res.json({
+    status: "ok",
+    message: "AI Code Reviewer API — At your service 🚀",
+    version: "2.0.0",
+  });
 });
 
 app.use("/ai", aiRoutes);
 
+// ─── GLOBAL ERROR HANDLER ─────────────────────────────────────────────────────
+app.use((err, _req, res, _next) => {
+  console.error("Unhandled error:", err.message);
+  res.status(500).json({ error: "Internal server error." });
+});
+
+// ─── START ────────────────────────────────────────────────────────────────────
 app.listen(port, () => {
-  console.log(`i am alive ${port}`);
+  console.log(`✅ Server running on port ${port}`);
 });

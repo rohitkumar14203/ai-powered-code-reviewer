@@ -19,6 +19,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.5.2",
     "prismjs": "^1.30.0",
     "react-markdown": "^10.1.0",
     "react-simple-code-editor": "^0.14.1"

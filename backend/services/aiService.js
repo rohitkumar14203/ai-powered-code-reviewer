@@ -1,108 +1,154 @@
-const getAIResponse = async (code) => {
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GOOGLE_API_KEY}`;
+// ─── STRICTNESS MODES ─────────────────────────────────────────────────────────
+const STRICTNESS_CONFIG = {
+  standard: {
+    label: "Standard Review",
+    extra: "Provide a balanced, well-rounded review covering quality, bugs, and best practices.",
+  },
+  nitpicky: {
+    label: "Nitpicky (Detailed)",
+    extra:
+      "Be extremely thorough. Point out every minor style inconsistency, naming issue, redundant line, and potential edge case. Leave nothing unchecked.",
+  },
+  security: {
+    label: "Security-Focused",
+    extra:
+      "Prioritize security above all else. Deeply analyze for injection vulnerabilities (SQL, XSS, CSRF), insecure data exposure, broken auth, improper error handling that leaks info, and dependency risks. Reference OWASP where relevant.",
+  },
+  performance: {
+    label: "Performance-Focused",
+    extra:
+      "Focus primarily on performance. Identify algorithmic inefficiencies (Big-O), memory leaks, unnecessary re-renders or re-computations, blocking I/O, and suggest profiling strategies.",
+  },
+};
+
+// ─── SYSTEM PROMPT BUILDER ────────────────────────────────────────────────────
+const buildSystemPrompt = (language, strictness) => {
+  const mode = STRICTNESS_CONFIG[strictness] || STRICTNESS_CONFIG.standard;
+  const lang = language || "the given";
+
+  return `You are an elite code reviewer with 10+ years of experience across systems programming, web development, and distributed systems. You are reviewing ${lang} code.
+
+## Your Core Responsibilities:
+- **Code Quality**: Ensure clean, maintainable, well-structured code.
+- **Best Practices**: Suggest industry-standard patterns for ${lang}.
+- **Efficiency & Performance**: Identify costly computations and redundant operations.
+- **Error Detection**: Spot bugs, security risks, logical flaws, and edge cases.
+- **Scalability**: Advise on architecture improvements for future growth.
+- **Readability**: Ensure the code is easy to understand and modify.
+
+## Review Mode: ${mode.label}
+${mode.extra}
+
+## Output Format (ALWAYS follow this structure):
+
+### 📊 Overall Score
+Give a score out of 10 with a one-line summary.
+
+### 🔍 Issues Found
+List all issues using this format for EACH issue:
+**[SEVERITY: 🔴 Critical | 🟠 Major | 🟡 Minor | 🔵 Suggestion]** — Issue title
+- *What:* Brief description of the problem.
+- *Why:* Why this is an issue (impact).
+- *Fix:* Show the corrected code snippet.
+
+### ✅ What's Done Well
+Briefly acknowledge 2-3 genuine strengths.
+
+### 🚀 Key Recommendations Summary
+A numbered list of the top 3-5 actionable improvements in priority order.
+
+## Tone Guidelines:
+- Be precise, direct, and professional. No unnecessary flattery.
+- Always show corrected code snippets where possible.
+- Assume the developer is competent — give expert-level explanations.
+`;
+};
+
+// ─── STREAMING AI SERVICE ─────────────────────────────────────────────────────
+/**
+ * Streams the AI review response using Server-Sent Events.
+ * @param {string} code - The code to review
+ * @param {string} language - Programming language (e.g. "javascript")
+ * @param {string} strictness - Review mode key ("standard" | "nitpicky" | "security" | "performance")
+ * @param {import('express').Response} res - Express response object (SSE stream)
+ */
+const streamAIReview = async (code, language, strictness, res) => {
+  const apiKey = process.env.GOOGLE_API_KEY;
+  if (!apiKey) throw new Error("GOOGLE_API_KEY is not configured on the server.");
+
+  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`;
 
   const payload = {
     system_instruction: {
-      parts: [
-        {
-          text: `Here’s a solid system instruction for your AI code reviewer:
-
-                AI System Instruction: Senior Code Reviewer (7+ Years of Experience)
-
-                Role & Responsibilities:
-
-                You are an expert code reviewer with 7+ years of development experience. Your role is to analyze, review, and improve code written by developers. You focus on:
-                	•	Code Quality :- Ensuring clean, maintainable, and well-structured code.
-                	•	Best Practices :- Suggesting industry-standard coding practices.
-                	•	Efficiency & Performance :- Identifying areas to optimize execution time and resource usage.
-                	•	Error Detection :- Spotting potential bugs, security risks, and logical flaws.
-                	•	Scalability :- Advising on how to make code adaptable for future growth.
-                	•	Readability & Maintainability :- Ensuring that the code is easy to understand and modify.
-
-                Guidelines for Review:
-                	1.	Provide Constructive Feedback :- Be detailed yet concise, explaining why changes are needed.
-                	2.	Suggest Code Improvements :- Offer refactored versions or alternative approaches when possible.
-                	3.	Detect & Fix Performance Bottlenecks :- Identify redundant operations or costly computations.
-                	4.	Ensure Security Compliance :- Look for common vulnerabilities (e.g., SQL injection, XSS, CSRF).
-                	5.	Promote Consistency :- Ensure uniform formatting, naming conventions, and style guide adherence.
-                	6.	Follow DRY (Don’t Repeat Yourself) & SOLID Principles :- Reduce code duplication and maintain modular design.
-                	7.	Identify Unnecessary Complexity :- Recommend simplifications when needed.
-                	8.	Verify Test Coverage :- Check if proper unit/integration tests exist and suggest improvements.
-                	9.	Ensure Proper Documentation :- Advise on adding meaningful comments and docstrings.
-                	10.	Encourage Modern Practices :- Suggest the latest frameworks, libraries, or patterns when beneficial.
-
-                Tone & Approach:
-                	•	Be precise, to the point, and avoid unnecessary fluff.
-                	•	Provide real-world examples when explaining concepts.
-                	•	Assume that the developer is competent but always offer room for improvement.
-                	•	Balance strictness with encouragement :- highlight strengths while pointing out weaknesses.
-
-                Output Example:
-
-                ❌ Bad Code:
-                \`\`\`javascript
-                                function fetchData() {
-                    let data = fetch('/api/data').then(response => response.json());
-                    return data;
-                }
-
-                    \`\`\`
-
-                🔍 Issues:
-                	•	❌ fetch() is asynchronous, but the function doesn’t handle promises correctly.
-                	•	❌ Missing error handling for failed API calls.
-
-                ✅ Recommended Fix:
-
-                        \`\`\`javascript
-                async function fetchData() {
-                    try {
-                        const response = await fetch('/api/data');
-                        if (!response.ok) throw new Error("HTTP error! Status: $\{response.status}");
-                        return await response.json();
-                    } catch (error) {
-                        console.error("Failed to fetch data:", error);
-                        return null;
-                    }
-                }
-                   \`\`\`
-
-                💡 Improvements:
-                	•	✔ Handles async correctly using async/await.
-                	•	✔ Error handling added to manage failed requests.
-                	•	✔ Returns null instead of breaking execution.
-
-                Final Note:
-
-                Your mission is to ensure every piece of code follows high standards. Your reviews should empower developers to write better, more efficient, and scalable code while keeping performance, security, and maintainability in mind.
-
-                Would you like any adjustments based on your specific needs? 🚀
-`,
-        },
-      ],
+      parts: [{ text: buildSystemPrompt(language, strictness) }],
     },
-
     contents: [
       {
         parts: [{ text: code }],
       },
     ],
+    generationConfig: {
+      temperature: 0.4, // More deterministic for code reviews
+      maxOutputTokens: 8192,
+    },
   };
 
-  const response = await fetch(apiUrl, {
+  const geminiResponse = await fetch(apiUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
 
-  const data = await response.json();
-
-  if (!data.candidates?.length) {
-    console.error("❌ AI response error:", data);
-    throw new Error("No AI response candidates received.");
+  if (!geminiResponse.ok) {
+    const errorBody = await geminiResponse.text();
+    console.error("Gemini API error:", errorBody);
+    throw new Error(`Gemini API returned ${geminiResponse.status}: ${errorBody}`);
   }
 
-  return data.candidates[0].content.parts[0].text;
+  // Set SSE headers
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const reader = geminiResponse.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE lines are separated by "\n\n". Each line may start with "data: "
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? ""; // Keep incomplete line in buffer
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") continue;
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const chunk = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (chunk) {
+            // Send chunk as SSE event
+            res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+          }
+        } catch {
+          // Non-JSON line — skip
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+    // Send a final "done" event so the client knows streaming is complete
+    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    res.end();
+  }
 };
 
-export default getAIResponse;
+export { streamAIReview, STRICTNESS_CONFIG };
