@@ -65,5 +65,5 @@ app.use((err, _req, res, _next) => {
 
 // ─── START ────────────────────────────────────────────────────────────────────
 app.listen(port, () => {
-  console.log(`✅ CodePulse API running on port ${port}`);
+  console.log(`CodePulse API running on port ${port}`);
 });
