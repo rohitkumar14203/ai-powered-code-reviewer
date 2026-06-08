@@ -13,13 +13,13 @@ const port = process.env.PORT || 3000;
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:4173",
-  "https://ai-powered-code-reviewer-xi.vercel.app",
+  "https://codepulse-ai.vercel.app",
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // allow requests with no origin (mobile apps, curl, etc.)
+      // Allow requests with no origin (mobile apps, curl, Postman)
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -44,13 +44,13 @@ const limiter = rateLimit({
 app.use("/ai", limiter);
 
 // ─── BODY PARSER ──────────────────────────────────────────────────────────────
-app.use(express.json({ limit: "50kb" })); // Prevent huge payloads at network level
+app.use(express.json({ limit: "50kb" }));
 
 // ─── ROUTES ───────────────────────────────────────────────────────────────────
 app.get("/", (_req, res) => {
   res.json({
     status: "ok",
-    message: "AI Code Reviewer API — At your service 🚀",
+    service: "CodePulse API",
     version: "2.0.0",
   });
 });
@@ -65,5 +65,5 @@ app.use((err, _req, res, _next) => {
 
 // ─── START ────────────────────────────────────────────────────────────────────
 app.listen(port, () => {
-  console.log(`✅ Server running on port ${port}`);
+  console.log(`✅ CodePulse API running on port ${port}`);
 });

@@ -1,7 +1,7 @@
 {
-  "name": "AI Code Reviewer",
-  "short_name": "CodeReview",
-  "description": "Instant AI-powered code reviews using Gemini 2.5 Flash",
+  "name": "CodePulse — AI Code Reviews",
+  "short_name": "CodePulse",
+  "description": "Instant AI-powered code reviews with real-time streaming using Gemini 2.5 Flash",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a14",
@@ -9,7 +9,7 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "/vite.svg",
+      "src": "/logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
