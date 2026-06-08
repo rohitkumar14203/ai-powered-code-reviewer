@@ -13,7 +13,7 @@ const port = process.env.PORT || 3000;
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:4173",
-  "https://codepulse-ai.vercel.app",
+  "https://ai-powered-code-reviewer-xi.vercel.app",
 ];
 
 app.use(
