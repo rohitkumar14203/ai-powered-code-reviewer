@@ -49,8 +49,6 @@
 | **Input Validation** | 15,000 char limit, language allowlist, strictness allowlist, and type checks |
 | **CORS Allowlist** | Dynamic origin validation instead of wildcard `*` |
 | **Global Error Handler** | Catches unhandled errors and returns clean JSON responses |
-| **Dockerized** | Multi-stage Dockerfiles for both frontend (nginx) and backend (Node Alpine) |
-
 ---
 
 ---
@@ -96,57 +94,7 @@ npm run dev
 
 Starts both backend (port 3000) and frontend (port 5173) concurrently.
 
----
 
-## 🐳 Docker
-
-```bash
-docker compose up --build
-```
-
-> Set `GOOGLE_API_KEY` in your environment or `.env` file before running.
-
----
-
-## 📁 Project Structure
-
-```
-codepulse/
-├── backend/
-│   ├── index.js                 # Express server, CORS, rate limiter
-│   ├── controllers/
-│   │   └── aiControllers.js     # Input validation, request handler
-│   ├── routes/
-│   │   └── aiRoutes.js          # POST /ai/get-review
-│   └── services/
-│       └── aiService.js         # Gemini API streaming, prompt builder
-├── frontend/
-│   ├── public/
-│   │   ├── manifest.json        # PWA manifest
-│   │   └── sw.js                # Service worker (network-first)
-│   ├── src/
-│   │   ├── App.jsx              # Main layout, state, SSE streaming
-│   │   ├── index.css            # Tailwind v4 config + custom styles
-│   │   ├── main.jsx             # React entry + SW registration
-│   │   ├── components/
-│   │   │   ├── Sidebar.jsx      # History drawer with per-item delete
-│   │   │   ├── Terminal.jsx     # Sandboxed JS execution output
-│   │   │   ├── ToastProvider.jsx# Toast notification context
-│   │   │   ├── ScoreRing.jsx    # Animated SVG score ring
-│   │   │   └── ShortcutsModal.jsx
-│   │   └── utils/
-│   │       ├── detectLanguage.js# Auto language detection heuristics
-│   │       └── codeRunner.js    # Web Worker JS execution engine
-│   └── vite.config.js
-├── docker/
-│   └── nginx.conf
-├── Dockerfile                   # Backend
-├── Dockerfile.frontend          # Frontend (Vite → nginx)
-├── docker-compose.yml
-└── package.json
-```
-
----
 
 ## ⌨️ Keyboard Shortcuts
 
@@ -169,7 +117,6 @@ codepulse/
 | **AI Model** | Gemini 2.5 Flash (Free Tier) |
 | **Streaming** | Server-Sent Events (SSE) |
 | **Code Runner** | Sandboxed Web Worker (client-side JS) |
-| **DevOps** | Docker, docker-compose, nginx |
 | **PWA** | Service Worker, Web App Manifest |
 
 ---
