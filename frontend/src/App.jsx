@@ -153,28 +153,28 @@ export default function App() {
   const canRun = EXECUTABLE_LANGUAGES.has(language);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 text-gray-900 dark:bg-[#0a0a14] dark:text-gray-100 overflow-hidden">
+    <div className="h-[100dvh] flex flex-col bg-gray-50 text-gray-900 dark:bg-[#0a0a14] dark:text-gray-100 overflow-hidden">
       {/* HEADER */}
       <header className="h-12 flex items-center justify-between px-3 bg-white/80 dark:bg-[#0f0f1a]/80 backdrop-blur-xl border-b border-gray-200 dark:border-white/[0.06] flex-shrink-0 z-50">
         <div className="flex items-center gap-2.5">
-          <button onClick={() => setSidebarOpen((v) => !v)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors" aria-label="Toggle history"><Menu size={18} /></button>
+          <button onClick={() => setSidebarOpen((v) => !v)} className="w-8 h-8 flex items-center justify-center rounded-[8px] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors" aria-label="Toggle history"><Menu size={18} /></button>
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/25"><Code2 size={14} className="text-white" /></div>
+            <div className="w-7 h-7 rounded-[8px] bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/25"><Code2 size={14} className="text-white" /></div>
             <span className="text-sm font-bold tracking-tight hidden sm:inline">Code<span className="text-violet-500">Pulse</span></span>
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={() => setShortcutsOpen(true)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors" title="Shortcuts (Ctrl+/)"><Keyboard size={16} /></button>
-          <button onClick={() => setDark((d) => !d)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors" title={dark ? "Light mode" : "Dark mode"}>{dark ? <Sun size={16} /> : <Moon size={16} />}</button>
+          <button onClick={() => setShortcutsOpen(true)} className="w-8 h-8 flex items-center justify-center rounded-[8px] text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors" title="Shortcuts (Ctrl+/)"><Keyboard size={16} /></button>
+          <button onClick={() => setDark((d) => !d)} className="w-8 h-8 flex items-center justify-center rounded-[8px] text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors" title={dark ? "Light mode" : "Dark mode"}>{dark ? <Sun size={16} /> : <Moon size={16} />}</button>
         </div>
       </header>
 
       {/* TOOLBAR */}
-      <div className="flex items-center gap-2.5 px-3 py-1.5 bg-white/60 dark:bg-[#0f0f1a]/40 backdrop-blur-lg border-b border-gray-200 dark:border-white/[0.06] flex-shrink-0 flex-wrap">
+      <div className="flex items-center gap-2.5 px-3 py-1.5 bg-white/60 dark:bg-[#0f0f1a]/40 backdrop-blur-lg border-b border-gray-200 dark:border-white/[0.06] flex-shrink-0 overflow-x-auto whitespace-nowrap hide-scrollbar">
         <div className="flex items-center gap-1.5">
           <FileCode size={13} className="text-gray-400" />
           <div className="relative">
-            <select value={language} onChange={(e) => setLanguage(e.target.value)} className="h-7 pl-2 pr-7 bg-gray-100 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.08] rounded-md text-xs text-gray-700 dark:text-gray-300 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-500 transition-all">
+            <select value={language} onChange={(e) => setLanguage(e.target.value)} className="h-7 pl-2 pr-7 bg-gray-100 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.08] rounded-[6px] text-xs text-gray-700 dark:text-gray-300 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-500 transition-all">
               {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
             </select>
             <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -189,7 +189,7 @@ export default function App() {
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Mode</span>
           <div className="relative">
-            <select value={strictness} onChange={(e) => setStrictness(e.target.value)} className="h-7 pl-2 pr-7 bg-gray-100 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.08] rounded-md text-xs text-gray-700 dark:text-gray-300 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-500 transition-all">
+            <select value={strictness} onChange={(e) => setStrictness(e.target.value)} className="h-7 pl-2 pr-7 bg-gray-100 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.08] rounded-[6px] text-xs text-gray-700 dark:text-gray-300 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-500 transition-all">
               {MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
             <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -209,55 +209,66 @@ export default function App() {
         <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
           {/* LEFT: Editor */}
           <section className="flex-1 flex flex-col border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-white/[0.06] min-h-0">
-            <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50/80 dark:bg-white/[0.02] border-b border-gray-200 dark:border-white/[0.06] flex-shrink-0">
-              <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest"><Code2 size={12} /> Editor</span>
-              <div className="flex items-center gap-1.5">
-                <button onClick={() => { setCode(""); addToast("Editor cleared", "info"); }} className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-0.5 rounded-md hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"><Trash2 size={12} /> Clear</button>
+            <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50/80 dark:bg-white/[0.02] border-b border-gray-200 dark:border-white/[0.06] flex-shrink-0 overflow-x-auto hide-scrollbar">
+              <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest flex-shrink-0"><Code2 size={12} /> Editor</span>
+              <div className="flex items-center gap-1.5 ml-auto">
+                <button onClick={() => { setCode(""); addToast("Editor cleared", "info"); }} className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-0.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors flex-shrink-0 whitespace-nowrap"><Trash2 size={12} /> Clear</button>
                 {/* Run Button */}
                 {canRun && (
-                  <button onClick={runCode} disabled={termRunning || !code.trim()} className="h-7 px-3 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-1.5">
+                  <button onClick={runCode} disabled={termRunning || !code.trim()} className="h-7 px-3 rounded-[8px] text-xs font-semibold text-white bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap">
                     <Play size={12} /> Run
                   </button>
                 )}
                 {/* Review Button */}
                 {streaming ? (
-                  <button onClick={stopStream} className="h-7 px-3 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all shadow-lg shadow-red-500/20 flex items-center gap-1.5"><Square size={12} /> Stop</button>
+                  <button onClick={stopStream} className="h-7 px-3 rounded-[8px] text-xs font-semibold text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all shadow-lg shadow-red-500/20 flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap"><Square size={12} /> Stop</button>
                 ) : (
-                  <button onClick={reviewCode} disabled={!code.trim() || code.length > MAX_CHARS} className="h-7 px-3.5 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 hover:-translate-y-px active:translate-y-0 flex items-center gap-1.5"><Rocket size={12} /> Review</button>
+                  <button onClick={reviewCode} disabled={!code.trim() || code.length > MAX_CHARS} className="h-7 px-3.5 rounded-[8px] text-xs font-semibold text-white bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 hover:-translate-y-px active:translate-y-0 flex items-center gap-1.5 flex-shrink-0 whitespace-nowrap"><Rocket size={12} /> Review</button>
                 )}
               </div>
             </div>
-            <div className="flex-1 min-h-0">
-              <Editor
-                height="100%"
-                language={language}
+            <div className="flex-1 min-h-0 relative">
+              <div className="hidden md:block absolute inset-0">
+                <Editor
+                  height="100%"
+                  language={language}
+                  value={code}
+                  theme={dark ? "vs-dark" : "light"}
+                  onChange={(val) => setCode(val || "")}
+                  options={{
+                    fontSize: 13,
+                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                    fontLigatures: true,
+                    lineNumbers: "on",
+                    minimap: { enabled: true, scale: 1 },
+                    scrollBeyondLastLine: false,
+                    wordWrap: "on",
+                    renderLineHighlight: "all",
+                    cursorBlinking: "smooth",
+                    cursorSmoothCaretAnimation: "on",
+                    smoothScrolling: true,
+                    padding: { top: 10, bottom: 10 },
+                    bracketPairColorization: { enabled: true },
+                    guides: { bracketPairs: true },
+                    tabSize: 2,
+                    // Mobile fixes
+                    accessibilitySupport: "off",
+                    quickSuggestions: false,
+                    parameterHints: { enabled: false },
+                    suggestOnTriggerCharacters: false,
+                    acceptSuggestionOnEnter: "off",
+                    wordBasedSuggestions: "off",
+                  }}
+                />
+              </div>
+              <textarea
+                className="md:hidden absolute inset-0 w-full h-full p-4 bg-transparent resize-none text-[13px] leading-relaxed font-mono text-gray-800 dark:text-gray-200 focus:outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 value={code}
-                theme={dark ? "vs-dark" : "light"}
-                onChange={(val) => setCode(val || "")}
-                options={{
-                  fontSize: 13,
-                  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                  fontLigatures: true,
-                  lineNumbers: "on",
-                  minimap: { enabled: true, scale: 1 },
-                  scrollBeyondLastLine: false,
-                  wordWrap: "on",
-                  renderLineHighlight: "all",
-                  cursorBlinking: "smooth",
-                  cursorSmoothCaretAnimation: "on",
-                  smoothScrolling: true,
-                  padding: { top: 10, bottom: 10 },
-                  bracketPairColorization: { enabled: true },
-                  guides: { bracketPairs: true },
-                  tabSize: 2,
-                  // Mobile fixes
-                  accessibilitySupport: "off",
-                  quickSuggestions: false,
-                  parameterHints: { enabled: false },
-                  suggestOnTriggerCharacters: false,
-                  acceptSuggestionOnEnter: "off",
-                  wordBasedSuggestions: "off",
-                }}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="// Paste your code here..."
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="off"
               />
             </div>
           </section>
@@ -277,8 +288,8 @@ export default function App() {
               </div>
               {rightTab === "review" && review && !streaming && (
                 <div className="flex items-center gap-1 pr-2">
-                  <button onClick={copyReview} className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-0.5 rounded-md hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"><Copy size={12} /> Copy</button>
-                  <button onClick={exportMd} className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-0.5 rounded-md hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"><Download size={12} /> Export</button>
+                  <button onClick={copyReview} className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-0.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"><Copy size={12} /> Copy</button>
+                  <button onClick={exportMd} className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-0.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"><Download size={12} /> Export</button>
                 </div>
               )}
             </div>
@@ -287,17 +298,17 @@ export default function App() {
             {rightTab === "review" ? (
               <div className="flex-1 overflow-y-auto p-5">
                 {streaming && review && (
-                  <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-violet-500/10 border border-violet-500/20 rounded-lg text-xs text-violet-400 font-medium">
+                  <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-violet-500/10 border border-violet-500/20 rounded-[8px] text-xs text-violet-400 font-medium">
                     <span className="flex gap-1"><span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" /><span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse [animation-delay:0.2s]" /><span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse [animation-delay:0.4s]" /></span>
                     Generating review…
                   </div>
                 )}
                 {showSkeleton && (<div className="space-y-4 animate-[fadeIn_0.3s_ease-out]"><div className="skeleton-line h-6 w-48" /><div className="skeleton-line h-4 w-full" /><div className="skeleton-line h-4 w-5/6" /><div className="skeleton-line h-4 w-3/4" /><div className="skeleton-line h-20 w-full mt-2" /><div className="skeleton-line h-4 w-2/3" /><div className="skeleton-line h-4 w-full" /><div className="skeleton-line h-16 w-full mt-2" /></div>)}
-                {error && !streaming && (<div className="flex items-start gap-2.5 p-3.5 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400"><AlertTriangle size={16} className="mt-0.5 flex-shrink-0" /><span>{error}</span></div>)}
+                {error && !streaming && (<div className="flex items-start gap-2.5 p-3.5 bg-red-500/10 border border-red-500/20 rounded-[8px] text-sm text-red-400"><AlertTriangle size={16} className="mt-0.5 flex-shrink-0" /><span>{error}</span></div>)}
                 {review && (<><ScoreRing reviewText={review} /><div className="review-md"><Markdown rehypePlugins={[rehypeHighlight]}>{review}</Markdown></div></>)}
                 {!review && !streaming && !error && (
                   <div className="h-full flex flex-col items-center justify-center text-center px-6 gap-3">
-                    <div className="w-14 h-14 rounded-2xl bg-violet-500/10 flex items-center justify-center animate-[float_3s_ease-in-out_infinite]"><Code2 size={24} className="text-violet-400" /></div>
+                    <div className="w-14 h-14 rounded-[16px] bg-violet-500/10 flex items-center justify-center animate-[float_3s_ease-in-out_infinite]"><Code2 size={24} className="text-violet-400" /></div>
                     <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Ready to Review</h3>
                     <p className="text-xs text-gray-400 dark:text-gray-500 max-w-[240px] leading-relaxed">Paste code in the editor, pick your mode, then hit <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-white/[0.06] border border-gray-200 dark:border-white/10 rounded text-[10px] font-mono">Ctrl+Enter</kbd></p>
                   </div>
