@@ -9,7 +9,7 @@ import aiRoutes from "./routes/aiRoutes.js";
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ─── CORS ─────────────────────────────────────────────────────────────────────
+// ─── CORS ───────────────────────────────────────────────────────────────────
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:4173",

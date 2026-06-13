@@ -4,6 +4,8 @@ import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
 import { Menu, Sun, Moon, Keyboard, Trash2, Square, Rocket, Copy, Download, Code2, Bot, Sparkles, ChevronDown, FileCode, AlertTriangle, Play, TerminalSquare } from "lucide-react";
+import EditorMobile from "react-simple-code-editor";
+import hljs from "highlight.js";
 import Sidebar from "./components/Sidebar";
 import ScoreRing from "./components/ScoreRing";
 import ShortcutsModal from "./components/ShortcutsModal";
@@ -261,15 +263,32 @@ export default function App() {
                   }}
                 />
               </div>
-              <textarea
-                className="md:hidden absolute inset-0 w-full h-full p-4 bg-transparent resize-none text-[13px] leading-relaxed font-mono text-gray-800 dark:text-gray-200 focus:outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="// Paste your code here..."
-                spellCheck={false}
-                autoCorrect="off"
-                autoCapitalize="off"
-              />
+              <div className="md:hidden absolute inset-0 w-full h-full overflow-auto bg-transparent code-editor-mobile text-gray-800 dark:text-gray-300">
+                <EditorMobile
+                  value={code}
+                  onValueChange={(val) => setCode(val)}
+                  highlight={(c) => {
+                    if (!c) return "";
+                    try {
+                      if (language && language !== "plaintext" && hljs.getLanguage(language)) {
+                        return hljs.highlight(c, { language }).value;
+                      }
+                      return hljs.highlightAuto(c).value;
+                    } catch (e) {
+                      return c.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    }
+                  }}
+                  padding={16}
+                  style={{
+                    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                    fontSize: 13,
+                    minHeight: "100%",
+                  }}
+                  textareaClassName="focus:outline-none placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                  className="min-h-full hljs-editor"
+                  placeholder="// Paste your code here..."
+                />
+              </div>
             </div>
           </section>
 
