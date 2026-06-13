@@ -104,3 +104,8 @@ body {
   scrollbar-width: none;
 }
 
+/* Smooth scroll for terminal & review panels */
+.scroll-smooth {
+  scroll-behavior: smooth;
+}
+

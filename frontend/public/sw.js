@@ -21,14 +21,23 @@ self.addEventListener("activate", (event) => {
 
 // Fetch — network first, cache fallback (for offline shell)
 self.addEventListener("fetch", (event) => {
-  // Skip non-GET and API requests
-  if (event.request.method !== "GET" || event.request.url.includes("/ai/")) return;
+  const url = new URL(event.request.url);
+
+  // Skip non-GET, non-HTTP(S) schemes (e.g. chrome-extension://), and API requests
+  if (
+    event.request.method !== "GET" ||
+    !url.protocol.startsWith("http") ||
+    url.pathname.includes("/ai/")
+  ) return;
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        // Only cache valid, same-origin or CORS responses
+        if (response && response.status === 200 && (response.type === "basic" || response.type === "cors")) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
         return response;
       })
       .catch(() => caches.match(event.request))
