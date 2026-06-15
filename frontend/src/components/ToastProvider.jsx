@@ -33,7 +33,7 @@ export default function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      <div className="fixed bottom-5 right-5 z-[200] flex flex-col-reverse gap-2 pointer-events-none">
+      <div className="fixed bottom-12 right-5 z-[200] flex flex-col-reverse gap-2 pointer-events-none">
         {toasts.map((t) => {
           const config = TOAST_CONFIG[t.type] || TOAST_CONFIG.info;
           const Icon = config.Icon;

@@ -3,7 +3,7 @@ import Editor from "@monaco-editor/react";
 import Markdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
-import { Menu, Sun, Moon, Keyboard, Trash2, Square, Rocket, Copy, Download, Code2, Bot, Sparkles, ChevronDown, FileCode, AlertTriangle, Play, TerminalSquare } from "lucide-react";
+import { Menu, Sun, Moon, Keyboard, Trash2, Square, Rocket, Copy, Download, Code2, Bot, Sparkles, ChevronDown, FileCode, AlertTriangle, Play, TerminalSquare, StickyNote, WandSparkles } from "lucide-react";
 import EditorMobile from "react-simple-code-editor";
 import hljs from "highlight.js";
 import Sidebar from "./components/Sidebar";
@@ -13,6 +13,17 @@ import Terminal from "./components/Terminal";
 import { useToast } from "./components/ToastProvider";
 import { detectLanguage } from "./utils/detectLanguage";
 import { executeCode, EXECUTABLE_LANGUAGES } from "./utils/codeRunner";
+import { DEFAULT_CODES } from "./utils/defaultCodes";
+
+// ─── Monaco language ID mapping (some Monaco IDs differ from our LANGUAGES values) ──
+const MONACO_LANG_MAP = {
+  csharp: "csharp",
+  cpp: "cpp",
+  c: "c",
+  shell: "shell",
+  // Everything else maps 1:1
+};
+const toMonacoLang = (lang) => MONACO_LANG_MAP[lang] || lang;
 
 const MAX_CHARS = 15000;
 const MAX_HISTORY = 10;
@@ -25,30 +36,14 @@ const LANGUAGES = [
   { value: "csharp", label: "C#" }, { value: "go", label: "Go" },
   { value: "rust", label: "Rust" }, { value: "php", label: "PHP" },
   { value: "ruby", label: "Ruby" }, { value: "swift", label: "Swift" },
-  { value: "kotlin", label: "Kotlin" }, { value: "sql", label: "SQL" },
-  { value: "html", label: "HTML" }, { value: "css", label: "CSS" },
-  { value: "shell", label: "Shell" }, { value: "plaintext", label: "Plain Text" },
+  { value: "kotlin", label: "Kotlin" }, { value: "shell", label: "Shell" },
 ];
 const MODES = [
   { value: "standard", label: "Standard" }, { value: "nitpicky", label: "Nitpicky" },
   { value: "security", label: "Security" }, { value: "performance", label: "Performance" },
 ];
 
-const DEFAULT_CODE = `// Paste your code here, then hit Ctrl+Enter or click "Review"
-function fetchUserData(userId) {
-  let data = fetch('/api/users/' + userId).then(r => r.json());
-  return data;
-}
-
-function processUsers(users) {
-  var result = [];
-  for (var i = 0; i < users.length; i++) {
-    if (users[i].age > 18) {
-      result.push(users[i]);
-    }
-  }
-  return result;
-}`;
+const DEFAULT_CODE = DEFAULT_CODES.javascript;
 
 const loadHistory = () => { try { return JSON.parse(localStorage.getItem("cr_history") || "[]"); } catch { return []; } };
 const saveHistory = (h) => localStorage.setItem("cr_history", JSON.stringify(h));
@@ -68,10 +63,17 @@ export default function App() {
   const [history, setHistory] = useState(loadHistory);
   const [activeHistoryId, setActiveHistoryId] = useState(null);
   // Terminal state
-  const [rightTab, setRightTab] = useState("review"); // "review" | "terminal"
+  const [rightTab, setRightTab] = useState("review"); // "review" | "terminal" | "notes"
   const [termOutput, setTermOutput] = useState([]);
   const [termRunning, setTermRunning] = useState(false);
+  // Notes — persisted to localStorage
+  const [notes, setNotes] = useState(() => localStorage.getItem("cr_notes") || "");
   const abortRef = useRef(null);
+  const editorRef = useRef(null);
+  const monacoRef = useRef(null);
+  const completionProviderRef = useRef(null);
+  // Track last user-selected language to suppress auto-switch briefly
+  const userSelectedLangRef = useRef(false);
 
   useEffect(() => { document.documentElement.classList.toggle("dark", dark); localStorage.setItem("cr_theme", dark ? "dark" : "light"); }, [dark]);
 
@@ -79,21 +81,20 @@ export default function App() {
     const timer = setTimeout(() => {
       const result = detectLanguage(code);
       setAutoLang(result);
-      if (result.confidence === "high" || result.confidence === "medium") setLanguage(result.language);
-    }, 500);
+      // Only auto-switch if the user hasn't manually selected a language recently
+      if (!userSelectedLangRef.current && (result.confidence === "high" || result.confidence === "medium")) {
+        setLanguage((prev) => {
+          if (prev !== result.language) {
+            const langLabel = LANGUAGES.find((l) => l.value === result.language)?.label || result.language;
+            addToast(`Auto-detected: ${langLabel}`, "info");
+          }
+          return result.language;
+        });
+      }
+      userSelectedLangRef.current = false;
+    }, 600);
     return () => clearTimeout(timer);
-  }, [code]);
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); reviewCode(); }
-      if (e.ctrlKey && e.key === "l") { e.preventDefault(); setCode(""); addToast("Editor cleared", "info"); }
-      if (e.ctrlKey && e.key === "/") { e.preventDefault(); setShortcutsOpen((v) => !v); }
-      if (e.key === "Escape") { if (shortcutsOpen) setShortcutsOpen(false); else if (sidebarOpen) setSidebarOpen(false); }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  });
+  }, [code, addToast]);
 
   const reviewCode = useCallback(async () => {
     if (streaming || !code.trim() || code.length > MAX_CHARS) return;
@@ -143,12 +144,170 @@ export default function App() {
     } finally { setTermRunning(false); }
   }, [code, language, termRunning, addToast]);
 
+  // ─── Keyboard Shortcuts ────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); reviewCode(); }
+      if (e.ctrlKey && e.key === "l") { e.preventDefault(); setCode(""); addToast("Editor cleared", "info"); }
+      if (e.ctrlKey && e.key === "/") { e.preventDefault(); setShortcutsOpen((v) => !v); }
+      if (e.key === "Escape") { if (shortcutsOpen) setShortcutsOpen(false); else if (sidebarOpen) setSidebarOpen(false); }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [reviewCode, addToast, shortcutsOpen, sidebarOpen]);
+
   const stopStream = () => { abortRef.current?.abort(); setStreaming(false); };
   const copyReview = async () => { if (!review) return; await navigator.clipboard.writeText(review); addToast("Copied to clipboard", "success"); };
   const exportMd = () => { if (!review) return; const blob = new Blob([`# AI Code Review\n\n**Language:** ${language} | **Mode:** ${strictness}\n\n---\n\n${review}`], { type: "text/markdown" }); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `code-review-${Date.now()}.md`; a.click(); URL.revokeObjectURL(a.href); addToast("Exported as Markdown", "success"); };
   const selectHistory = (item) => { setReview(item.review); setLanguage(item.language); setStrictness(item.strictness); setError(""); setActiveHistoryId(item.id); setSidebarOpen(false); setRightTab("review"); };
   const deleteHistory = (id) => { setHistory((prev) => { const u = prev.filter((h) => h.id !== id); saveHistory(u); return u; }); if (activeHistoryId === id) { setActiveHistoryId(null); setReview(""); } addToast("Review deleted", "info"); };
   const clearHistory = () => { setHistory([]); saveHistory([]); setActiveHistoryId(null); addToast("History cleared", "warning"); };
+
+  // ─── Autocomplete: extract user-defined identifiers and register as suggestions ──
+  const registerCompletionProvider = useCallback((monaco) => {
+    // Dispose any previous provider
+    if (completionProviderRef.current) {
+      completionProviderRef.current.dispose();
+      completionProviderRef.current = null;
+    }
+
+    // Register a universal completion provider for ALL languages
+    completionProviderRef.current = monaco.languages.registerCompletionItemProvider("*", {
+      triggerCharacters: ["."],
+      provideCompletionItems: (model, position) => {
+        const text = model.getValue();
+        const wordInfo = model.getWordUntilPosition(position);
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: wordInfo.startColumn,
+          endColumn: wordInfo.endColumn,
+        };
+
+        const seen = new Set();
+        const suggestions = [];
+
+        // Extract user-defined identifiers via regex patterns
+        const patterns = [
+          // JavaScript/TypeScript: const/let/var declarations
+          { regex: /\b(?:const|let|var)\s+(\w+)/g, kind: monaco.languages.CompletionItemKind.Variable },
+          // Function declarations & expressions
+          { regex: /\bfunction\s+(\w+)/g, kind: monaco.languages.CompletionItemKind.Function },
+          // Arrow functions assigned to variables  
+          { regex: /\b(?:const|let|var)\s+(\w+)\s*=\s*(?:\([^)]*\)|[^=])\s*=>/g, kind: monaco.languages.CompletionItemKind.Function },
+          // Class declarations
+          { regex: /\bclass\s+(\w+)/g, kind: monaco.languages.CompletionItemKind.Class },
+          // Python: def function_name
+          { regex: /\bdef\s+(\w+)/g, kind: monaco.languages.CompletionItemKind.Function },
+          // Python: class ClassName
+          { regex: /\bclass\s+(\w+)/g, kind: monaco.languages.CompletionItemKind.Class },
+          // Python/Ruby: variable assignment (name = value)
+          { regex: /^(\w+)\s*=[^=]/gm, kind: monaco.languages.CompletionItemKind.Variable },
+          // Go: func funcName
+          { regex: /\bfunc\s+(\w+)/g, kind: monaco.languages.CompletionItemKind.Function },
+          // Rust: fn func_name / let variable
+          { regex: /\bfn\s+(\w+)/g, kind: monaco.languages.CompletionItemKind.Function },
+          { regex: /\blet\s+(?:mut\s+)?(\w+)/g, kind: monaco.languages.CompletionItemKind.Variable },
+          // Java/C#/C++: type variableName (basic heuristic)
+          { regex: /\b(?:int|float|double|String|boolean|char|long|byte|short|void|auto)\s+(\w+)/g, kind: monaco.languages.CompletionItemKind.Variable },
+          // Function parameters (inside parentheses)
+          { regex: /\(([^)]*)\)/g, kind: monaco.languages.CompletionItemKind.Variable, isParams: true },
+          // Object property: this.propName or self.propName
+          { regex: /\b(?:this|self)\.(\w+)/g, kind: monaco.languages.CompletionItemKind.Property },
+          // Import names
+          { regex: /\bimport\s+(?:{([^}]+)}|(\w+))/g, kind: monaco.languages.CompletionItemKind.Module, isImport: true },
+        ];
+
+        // Reserved words to exclude from suggestions
+        const reserved = new Set([
+          "if", "else", "for", "while", "do", "switch", "case", "break", "continue",
+          "return", "try", "catch", "finally", "throw", "new", "delete", "typeof",
+          "instanceof", "in", "of", "true", "false", "null", "undefined", "void",
+          "const", "let", "var", "function", "class", "import", "export", "default",
+          "from", "async", "await", "yield", "this", "super", "extends", "static",
+          "get", "set", "with", "debugger", "enum", "implements", "interface",
+          "package", "private", "protected", "public", "abstract", "final",
+          "def", "self", "print", "elif", "except", "lambda", "pass", "raise",
+          "int", "float", "double", "String", "boolean", "char", "long", "byte",
+          "short", "auto", "struct", "template", "namespace", "using", "include",
+          "fn", "mut", "pub", "mod", "use", "crate", "impl", "trait", "where",
+          "func", "go", "chan", "defer", "select", "map", "range", "type",
+        ]);
+
+        for (const { regex, kind, isParams, isImport } of patterns) {
+          let match;
+          while ((match = regex.exec(text)) !== null) {
+            if (isParams) {
+              // Extract individual parameter names from the parenthesized group
+              const params = match[1].split(",").map((p) => p.trim().split(/[\s:=]+/)[0].replace(/[^a-zA-Z0-9_$]/g, ""));
+              for (const param of params) {
+                if (param && param.length > 1 && !reserved.has(param) && !seen.has(param)) {
+                  seen.add(param);
+                  suggestions.push({
+                    label: param,
+                    kind: monaco.languages.CompletionItemKind.Variable,
+                    detail: "parameter",
+                    insertText: param,
+                    range,
+                    sortText: `0_${param}`, // Sort user-defined items first
+                  });
+                }
+              }
+            } else if (isImport) {
+              const importStr = match[1] || match[2];
+              if (importStr) {
+                const names = importStr.split(",").map((s) => s.trim().split(/\s+as\s+/).pop().trim());
+                for (const name of names) {
+                  if (name && name.length > 1 && !reserved.has(name) && !seen.has(name)) {
+                    seen.add(name);
+                    suggestions.push({
+                      label: name,
+                      kind,
+                      detail: "import",
+                      insertText: name,
+                      range,
+                      sortText: `1_${name}`,
+                    });
+                  }
+                }
+              }
+            } else {
+              const name = match[1];
+              if (name && name.length > 1 && !reserved.has(name) && !seen.has(name)) {
+                seen.add(name);
+                const kindLabel = kind === monaco.languages.CompletionItemKind.Function ? "function"
+                  : kind === monaco.languages.CompletionItemKind.Class ? "class"
+                  : kind === monaco.languages.CompletionItemKind.Property ? "property"
+                  : "variable";
+                suggestions.push({
+                  label: name,
+                  kind,
+                  detail: kindLabel,
+                  insertText: kind === monaco.languages.CompletionItemKind.Function ? `${name}($0)` : name,
+                  insertTextRules: kind === monaco.languages.CompletionItemKind.Function
+                    ? monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
+                    : undefined,
+                  range,
+                  sortText: `0_${name}`,
+                });
+              }
+            }
+          }
+        }
+
+        return { suggestions };
+      },
+    });
+  }, []);
+
+  // Cleanup completion provider on unmount
+  useEffect(() => {
+    return () => {
+      if (completionProviderRef.current) {
+        completionProviderRef.current.dispose();
+      }
+    };
+  }, []);
 
   const charPercent = code.length / MAX_CHARS;
   const showSkeleton = streaming && !review;
@@ -176,7 +335,16 @@ export default function App() {
         <div className="flex items-center gap-1.5">
           <FileCode size={13} className="text-gray-400" />
           <div className="relative">
-            <select value={language} onChange={(e) => setLanguage(e.target.value)} className="h-7 pl-2 pr-7 bg-gray-100 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.08] rounded-[6px] text-xs text-gray-700 dark:text-gray-300 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-500 transition-all">
+            <select value={language} onChange={(e) => {
+              const newLang = e.target.value;
+              userSelectedLangRef.current = true;
+              setLanguage(newLang);
+              // Load default snippet if editor is empty or still has a default snippet
+              const isDefault = !code.trim() || Object.values(DEFAULT_CODES).some((d) => d === code);
+              if (isDefault && DEFAULT_CODES[newLang]) {
+                setCode(DEFAULT_CODES[newLang]);
+              }
+            }} className="h-7 pl-2 pr-7 bg-gray-100 dark:bg-white/[0.06] border border-gray-200 dark:border-white/[0.08] rounded-[6px] text-xs text-gray-700 dark:text-gray-300 appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-violet-500 transition-all">
               {LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
             </select>
             <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -214,6 +382,36 @@ export default function App() {
             <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50/80 dark:bg-white/[0.02] border-b border-gray-200 dark:border-white/[0.06] flex-shrink-0 overflow-x-auto hide-scrollbar">
               <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest flex-shrink-0"><Code2 size={12} /> Editor</span>
               <div className="flex items-center gap-1.5 ml-auto">
+                {/* Format Code */}
+                <button onClick={() => {
+                  if (editorRef.current) {
+                    editorRef.current.getAction('editor.action.formatDocument')?.run().then(() => {
+                      addToast("Code formatted", "success");
+                    });
+                  } else {
+                    // Mobile fallback: basic JS indentation
+                    try {
+                      const formatted = code
+                        .split('\n')
+                        .map(line => line.trimStart())
+                        .reduce((acc, line, i) => {
+                          const prev = i > 0 ? acc[i - 1] : '';
+                          let indent = (prev.match(/^\s*/)?.[0] || '').length;
+                          if (prev.trimEnd().endsWith('{') || prev.trimEnd().endsWith('(')) indent += 2;
+                          if (line.startsWith('}') || line.startsWith(')')) indent = Math.max(0, indent - 2);
+                          acc.push(' '.repeat(indent) + line);
+                          return acc;
+                        }, [])
+                        .join('\n');
+                      setCode(formatted);
+                      addToast("Code formatted", "success");
+                    } catch {
+                      addToast("Could not format this code", "warning");
+                    }
+                  }
+                }} disabled={!code.trim()} className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-amber-400 dark:hover:text-amber-300 px-2 py-0.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors flex-shrink-0 whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed" title="Format code (Alt+Shift+F)">
+                  <WandSparkles size={12} /> Pretty
+                </button>
                 <button onClick={() => { setCode(""); addToast("Editor cleared", "info"); }} className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-0.5 rounded-[6px] hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors flex-shrink-0 whitespace-nowrap"><Trash2 size={12} /> Clear</button>
                 {/* Run Button */}
                 {canRun && (
@@ -233,10 +431,16 @@ export default function App() {
               <div className="hidden md:block absolute inset-0">
                 <Editor
                   height="100%"
-                  language={language}
+                  language={toMonacoLang(language)}
                   value={code}
                   theme={dark ? "vs-dark" : "light"}
                   onChange={(val) => setCode(val || "")}
+                  onMount={(editor, monaco) => {
+                    editorRef.current = editor;
+                    monacoRef.current = monaco;
+                    // Register custom autocomplete provider for user-defined identifiers
+                    registerCompletionProvider(monaco);
+                  }}
                   options={{
                     fontSize: 13,
                     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
@@ -253,13 +457,29 @@ export default function App() {
                     bracketPairColorization: { enabled: true },
                     guides: { bracketPairs: true },
                     tabSize: 2,
-                    // Mobile fixes
+                    formatOnPaste: true,
+                    formatOnType: true,
+                    autoIndent: "advanced",
                     accessibilitySupport: "off",
-                    quickSuggestions: false,
-                    parameterHints: { enabled: false },
-                    suggestOnTriggerCharacters: false,
-                    acceptSuggestionOnEnter: "off",
-                    wordBasedSuggestions: "off",
+                    // Enable intelligent autocomplete (user-defined variables + built-in)
+                    quickSuggestions: { other: true, comments: false, strings: false },
+                    suggestOnTriggerCharacters: true,
+                    acceptSuggestionOnEnter: "on",
+                    wordBasedSuggestions: "allDocuments",
+                    parameterHints: { enabled: true },
+                    suggest: {
+                      showKeywords: true,
+                      showSnippets: true,
+                      showVariables: true,
+                      showFunctions: true,
+                      showClasses: true,
+                      insertMode: "replace",
+                      filterGraceful: true,
+                      localityBonus: true,
+                      shareSuggestSelections: true,
+                      snippetsPreventQuickSuggestions: false,
+                      preview: true,
+                    },
                   }}
                 />
               </div>
@@ -304,6 +524,10 @@ export default function App() {
                   <TerminalSquare size={12} /> Terminal
                   {termOutput.length > 0 && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
                 </button>
+                <button onClick={() => setRightTab("notes")} className={`flex items-center gap-1.5 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider border-b-2 transition-colors ${rightTab === "notes" ? "text-amber-400 border-amber-400" : "text-gray-400 dark:text-gray-500 border-transparent hover:text-gray-600 dark:hover:text-gray-400"}`}>
+                  <StickyNote size={12} /> Notes
+                  {notes.trim() && <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />}
+                </button>
               </div>
               {rightTab === "review" && review && !streaming && (
                 <div className="flex items-center gap-1 pr-2">
@@ -315,7 +539,7 @@ export default function App() {
 
             {/* Tab Content */}
             {rightTab === "review" ? (
-              <div className="flex-1 overflow-y-auto p-5">
+              <div className="flex-1 overflow-y-auto p-5 pb-10 scroll-smooth">
                 {streaming && review && (
                   <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-violet-500/10 border border-violet-500/20 rounded-[8px] text-xs text-violet-400 font-medium">
                     <span className="flex gap-1"><span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" /><span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse [animation-delay:0.2s]" /><span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse [animation-delay:0.4s]" /></span>
@@ -333,8 +557,37 @@ export default function App() {
                   </div>
                 )}
               </div>
-            ) : (
+            ) : rightTab === "terminal" ? (
               <Terminal output={termOutput} running={termRunning} onClear={() => setTermOutput([])} />
+            ) : (
+              /* ── Notes Tab ─────────────────────────────────────────────── */
+              <div className="flex-1 flex flex-col min-h-0 bg-[#0a0a14]">
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.06] flex-shrink-0">
+                  <span className="text-[10px] font-bold text-amber-400/60 uppercase tracking-widest flex items-center gap-1.5">
+                    <StickyNote size={11} /> Scratch Pad
+                  </span>
+                  {notes.trim() && (
+                    <button
+                      onClick={() => { setNotes(""); localStorage.removeItem("cr_notes"); }}
+                      className="text-[10px] text-gray-600 hover:text-red-400 transition-colors px-2 py-0.5 rounded hover:bg-white/[0.04]"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  value={notes}
+                  onChange={(e) => { setNotes(e.target.value); localStorage.setItem("cr_notes", e.target.value); }}
+                  placeholder={`Use this space for anything\n\n• Jot down ideas or todos\n• Write pseudocode before coding\n• Keep track of bug notes\n• Paste reference snippets\n\nYour notes are saved automatically.`}
+                  className="flex-1 w-full bg-transparent text-gray-300 font-mono text-[12.5px] leading-relaxed p-4 resize-none focus:outline-none placeholder:text-gray-600/50 scroll-smooth"
+                  spellCheck={false}
+                />
+                <div className="flex items-center justify-end px-3 py-1 border-t border-white/[0.04] flex-shrink-0">
+                  <span className="text-[9px] text-gray-700 tabular-nums">
+                    {notes.length > 0 ? `${notes.split(/\s+/).filter(Boolean).length} words · ${notes.length} chars` : "Auto-saved"}
+                  </span>
+                </div>
+              </div>
             )}
           </section>
         </div>

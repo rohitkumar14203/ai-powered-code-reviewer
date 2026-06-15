@@ -7,15 +7,20 @@ import { TerminalSquare, Trash2, Loader2 } from "lucide-react";
 export default function Terminal({ output, running, onClear }) {
   const scrollRef = useRef(null);
 
-  // Auto-scroll to bottom when new output arrives
+  // Auto-scroll to bottom when new output arrives (smooth)
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      requestAnimationFrame(() => {
+        scrollRef.current.scrollTo({
+          top: scrollRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+      });
     }
   }, [output]);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* Terminal Header */}
       <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50/80 dark:bg-white/[0.02] border-b border-gray-200 dark:border-white/[0.06] flex-shrink-0">
         <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
@@ -38,10 +43,10 @@ export default function Terminal({ output, running, onClear }) {
         </div>
       </div>
 
-      {/* Terminal Body */}
+      {/* Terminal Body — pb-10 ensures the last lines are never hidden behind the footer */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto bg-[#0a0a14] p-4 font-mono text-[13px] leading-relaxed"
+        className="flex-1 overflow-y-auto bg-[#0a0a14] p-4 pb-10 font-mono text-[13px] leading-relaxed scroll-smooth"
       >
         {output.length === 0 && !running ? (
           <div className="h-full flex flex-col items-center justify-center text-center gap-2">
@@ -86,3 +91,4 @@ function getLineStyle(type) {
     default:        return "text-gray-400";
   }
 }
+
